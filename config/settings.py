@@ -35,12 +35,14 @@ for domain in [
     os.getenv('RAILWAY_PRIVATE_DOMAIN', ''),
     os.getenv('RENDER_EXTERNAL_HOSTNAME', ''),
     os.getenv('RENDER_EXTERNAL_URL', ''),
+    os.getenv('RENDER_SERVICE_NAME', ''),
 ]:
     if not domain:
         continue
     hostname = domain.replace('https://', '').replace('http://', '').split('/')[0]
     if hostname and hostname not in allowed_hosts:
         allowed_hosts.append(hostname)
+allowed_hosts.extend(['.onrender.com', 'onrender.com'])
 ALLOWED_HOSTS = allowed_hosts
 
 csrf_origins = [origin.strip() for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
@@ -48,6 +50,7 @@ for domain in [
     os.getenv('RAILWAY_PUBLIC_DOMAIN', ''),
     os.getenv('RENDER_EXTERNAL_HOSTNAME', ''),
     os.getenv('RENDER_EXTERNAL_URL', ''),
+    os.getenv('RENDER_SERVICE_NAME', ''),
 ]:
     if not domain:
         continue
@@ -57,6 +60,8 @@ for domain in [
         origin = f'https://{domain}'
     if origin not in csrf_origins:
         csrf_origins.append(origin)
+if 'https://*.onrender.com' not in csrf_origins:
+    csrf_origins.append('https://*.onrender.com')
 CSRF_TRUSTED_ORIGINS = csrf_origins
 
 INSTALLED_APPS = [

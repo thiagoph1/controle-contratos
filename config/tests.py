@@ -3,6 +3,7 @@ from importlib import reload
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
+from django.urls import resolve
 
 import config.settings as settings_module
 
@@ -46,3 +47,9 @@ class RailwaySettingsTests(SimpleTestCase):
             self.assertIn('localhost', settings.ALLOWED_HOSTS)
             self.assertIn('app.onrender.com', settings.ALLOWED_HOSTS)
             self.assertIn('https://app.onrender.com', settings.CSRF_TRUSTED_ORIGINS)
+
+    def test_login_and_logout_routes_resolve_with_and_without_trailing_slash(self):
+        self.assertEqual(resolve('/login').view_name, 'login')
+        self.assertEqual(resolve('/login/').view_name, 'login')
+        self.assertEqual(resolve('/logout').view_name, 'logout')
+        self.assertEqual(resolve('/logout/').view_name, 'logout')
