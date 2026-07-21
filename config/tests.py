@@ -6,6 +6,7 @@ from django.test import SimpleTestCase
 from django.urls import resolve
 
 import config.settings as settings_module
+from config.entrypoint_utils import resolve_database_host_and_port
 
 
 class RenderSettingsTests(SimpleTestCase):
@@ -47,6 +48,17 @@ class RenderSettingsTests(SimpleTestCase):
             self.assertIn('localhost', settings.ALLOWED_HOSTS)
             self.assertIn('app.onrender.com', settings.ALLOWED_HOSTS)
             self.assertIn('https://app.onrender.com', settings.CSRF_TRUSTED_ORIGINS)
+
+    def test_entrypoint_uses_database_url_host_for_postgresql(self):
+        with patch.dict(os.environ, {
+            'DB_ENGINE': 'postgresql',
+            'DATABASE_URL': 'postgresql://user:pass@db.example.com:5432/contratos',
+            'POSTGRES_HOST': '',
+            'POSTGRES_PORT': '',
+        }, clear=False):
+            host, port = resolve_database_host_and_port()
+            self.assertEqual(host, 'db.example.com')
+            self.assertEqual(port, 5432)
 
     def test_login_and_logout_routes_resolve_with_and_without_trailing_slash(self):
         self.assertEqual(resolve('/login').view_name, 'login')

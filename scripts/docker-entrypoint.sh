@@ -2,13 +2,17 @@
 set -e
 python - <<'PY'
 import os, socket, time
+from config.entrypoint_utils import resolve_database_host_and_port
 if os.getenv('DB_ENGINE','').lower() in {'postgres','postgresql'}:
-    host=os.getenv('POSTGRES_HOST','db'); port=int(os.getenv('POSTGRES_PORT','5432'))
+    host, port = resolve_database_host_and_port()
     for _ in range(60):
         try:
-            with socket.create_connection((host,port),2): break
-        except OSError: time.sleep(1)
-    else: raise SystemExit('PostgreSQL indisponível')
+            with socket.create_connection((host, port), 2):
+                break
+        except OSError:
+            time.sleep(1)
+    else:
+        raise SystemExit('PostgreSQL indisponível')
 PY
 python manage.py migrate --noinput
 python manage.py bootstrap_system --no-admin
