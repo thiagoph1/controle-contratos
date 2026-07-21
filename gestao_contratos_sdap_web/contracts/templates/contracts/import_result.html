@@ -1,0 +1,2 @@
+{% extends 'contracts/base.html' %}
+{% block content %}<div class="page-heading"><div><h1>Importação concluída</h1><p>{{ batch.filename }}</p></div><span class="badge success">Concluída</span></div><section class="panel narrow-panel"><h2>Resultado</h2><dl class="result-list">{% for key,value in result.items %}<div><dt>{{ key }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl><div class="form-actions"><a class="button primary" href="{% url 'contract_list' %}">Abrir contratos</a><a class="button" href="{% url 'dashboard' %}">Ir ao painel</a></div></section>{% endblock %}

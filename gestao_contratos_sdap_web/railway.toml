@@ -1,0 +1,7 @@
+[build]
+  builder = "NIXPACKS"
+
+[deploy]
+  startCommand = "./scripts/docker-entrypoint.sh"
+  healthcheckPath = "/"
+  healthcheckTimeout = 100

@@ -1,0 +1,57 @@
+{% load static contracts_extras %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ system_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'contracts/css/app.css' %}">
+  <script defer src="{% static 'contracts/js/app.js' %}"></script>
+</head>
+<body>
+  <header class="topbar">
+    <button class="menu-button" type="button" aria-label="Abrir menu" data-menu-button>☰</button>
+    <a class="brand" href="{% url 'dashboard' %}">
+      <span class="brand-mark">GC</span>
+      <span><strong>{{ system_name }}</strong><small>{{ system_organization }}</small></span>
+    </a>
+    <div class="user-area">
+      <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link-button" type="submit">Sair</button></form>
+    </div>
+  </header>
+  <div class="app-shell">
+    <aside class="sidebar" data-sidebar>
+      <nav>
+        <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Painel</a>
+        <a href="{% url 'contract_list' %}">Contratos</a>
+        <a href="{% url 'commitment_list' %}">Empenhos</a>
+        <a href="{% url 'supplyorder_list' %}">Ordens de fornecimento</a>
+        <a href="{% url 'delivery_list' %}">Entregas</a>
+        <a href="{% url 'change_list' %}">Alterações contratuais</a>
+        <a href="{% url 'process_list' %}">PAAI / Processos</a>
+        <a href="{% url 'document_list' %}">Documentos</a>
+        <span class="nav-label">Cadastros</span>
+        <a href="{% url 'supplier_list' %}">Empresas</a>
+        <a href="{% url 'organization_list' %}">Organizações Militares</a>
+        <a href="{% url 'person_list' %}">Responsáveis</a>
+        {% if can_manage %}
+          <span class="nav-label">Administração</span>
+          <a href="{% url 'import_upload' %}">Importar planilha</a>
+          <a href="{% url 'audit_list' %}">Auditoria</a>
+        {% endif %}
+        {% if request.user.is_staff %}<a href="{% url 'admin:index' %}">Usuários e permissões</a>{% endif %}
+        <a href="{% url 'help' %}">Ajuda</a>
+      </nav>
+    </aside>
+    <main class="content">
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

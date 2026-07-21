@@ -1,0 +1,15 @@
+{% extends 'contracts/base.html' %}
+{% block content %}
+<div class="page-heading"><div><h1>Ajuda e fluxo de trabalho</h1><p>Orientações para uso seguro e organizado do sistema.</p></div></div>
+<div class="help-grid">
+<section class="panel"><h2>1. Cadastros básicos</h2><p>Cadastre ou revise Empresas, Organizações Militares e Responsáveis antes de inserir contratos manualmente. Na importação da planilha, registros ausentes são criados automaticamente.</p></section>
+<section class="panel"><h2>2. Contrato</h2><p>O contrato reúne objeto, empresa, PAG, pregão, responsáveis, vigência, valores e documentos. O status de vigência é recalculado a partir da data final.</p></section>
+<section class="panel"><h2>3. Itens e empenhos</h2><p>Cada item preserva o item do pregão, TDV, nomenclatura, quantidade e valor. Um empenho pode ser relacionado ao item correspondente e conter Ação Orçamentária, PTRES, origem do crédito e PI.</p></section>
+<section class="panel"><h2>4. Ordens e entregas</h2><p>As ordens distribuem os quantitativos por OM destino. O saldo pendente e o atraso são calculados automaticamente. Registre entregas, notas fiscais e aceite.</p></section>
+<section class="panel"><h2>5. Alterações e PAAI</h2><p>Registre aditivos, reajustes, apostilamentos, prorrogações e processos administrativos, mantendo o histórico junto ao contrato.</p></section>
+<section class="panel"><h2>6. Documentos</h2><p>Anexe documentos autorizados de até 10 MB. Em ambiente multiusuário, a pasta de mídia deve ficar no servidor e entrar na rotina de backup.</p></section>
+<section class="panel"><h2>7. Importação</h2><p>Gere a prévia, analise erros e alertas e confirme somente após validar. Linhas repetidas por OM são consolidadas no contrato, mas mantidas como ordens distintas.</p></section>
+<section class="panel"><h2>8. Perfis</h2><p><strong>Administrador:</strong> usuários, permissões e todos os módulos. <strong>Gestor:</strong> contratos e importações. <strong>Fiscal:</strong> atualizações operacionais. <strong>Consulta:</strong> leitura e relatórios.</p></section>
+<section class="panel"><h2>9. Backup</h2><p>Execute a rotina de backup regularmente. Em SQLite, salve o banco e a pasta de documentos. Em PostgreSQL, use o backup do banco e mantenha a mesma pasta de mídia.</p></section>
+</div>
+{% endblock %}

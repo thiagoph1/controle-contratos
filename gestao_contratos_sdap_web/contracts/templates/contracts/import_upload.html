@@ -1,0 +1,13 @@
+{% extends 'contracts/base.html' %}
+{% block content %}
+<div class="page-heading"><div><h1>Importar planilha</h1><p>O sistema primeiro gera uma prévia e não grava nada até a confirmação.</p></div><a class="button" href="{% url 'import_template' %}">Baixar modelo</a></div>
+<div class="two-column import-layout">
+  <form method="post" enctype="multipart/form-data" class="panel form-panel">{% csrf_token %}
+    <h2>Selecionar arquivo</h2>
+    {% if form.non_field_errors %}<div class="message error">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}</div>{% endfor %}
+    <div class="form-actions"><a class="button" href="{% url 'dashboard' %}">Cancelar</a><button class="button primary" type="submit">Gerar prévia</button></div>
+  </form>
+  <section class="panel"><h2>Como funciona</h2><ol class="steps"><li>O arquivo é lido sem alterar o banco.</li><li>Contratos repetidos são agrupados pelo número.</li><li>Itens, empenhos e destinos permanecem separados.</li><li>Erros e possíveis duplicidades são exibidos.</li><li>Somente após sua confirmação os dados são gravados.</li></ol><div class="note"><strong>Importante:</strong> a coluna “Dias p/ vencer” não é importada. O sistema calcula automaticamente a partir da vigência final.</div></section>
+</div>
+{% endblock %}

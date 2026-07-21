@@ -1,0 +1,50 @@
+{% extends 'contracts/base.html' %}{% load contracts_extras %}
+{% block title %}Painel — {{ system_name }}{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><h1>Painel gerencial</h1><p>Visão consolidada da carteira de contratos e entregas.</p></div>
+  {% if can_manage %}<a class="button primary" href="{% url 'contract_create' %}">+ Novo contrato</a>{% endif %}
+</div>
+<div class="kpi-grid">
+  <article class="kpi"><span>Contratos cadastrados</span><strong>{{ total_contracts }}</strong></article>
+  <article class="kpi"><span>Valor atualizado</span><strong>{{ total_value|brl }}</strong></article>
+  <article class="kpi warning"><span>Vencendo em 90 dias</span><strong>{{ expiring_contracts }}</strong></article>
+  <article class="kpi danger"><span>Ordens atrasadas</span><strong>{{ overdue_orders_count }}</strong></article>
+  <article class="kpi"><span>PAAI em andamento</span><strong>{{ open_paai }}</strong></article>
+  <article class="kpi success"><span>Quantidade entregue</span><strong>{{ delivery_percent|percent_pt }}</strong></article>
+</div>
+<div class="dashboard-grid">
+  <section class="panel">
+    <div class="panel-heading"><h2>Situação dos contratos</h2></div>
+    <div class="status-grid">
+      {% for card in status_cards %}<div class="status-card {{ card.class }}"><span>{{ card.label }}</span><strong>{{ card.value }}</strong></div>{% endfor %}
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-heading"><h2>Valor por OM destino</h2></div>
+    <div class="bar-list">
+      {% for row in top_destinations %}
+      <div class="bar-row"><div><span>{{ row.destination__acronym }}</span><strong>{{ row.total|brl }}</strong></div><div class="bar-track"><span style="width: {{ row.bar_percent }}%"></span></div></div>
+      {% empty %}<p class="empty">Nenhuma ordem cadastrada.</p>{% endfor %}
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-heading"><h2>Próximos vencimentos</h2><a href="{% url 'contract_list' %}?status=VENCENDO">Ver todos</a></div>
+    <div class="table-wrap"><table><thead><tr><th>Contrato</th><th>Empresa</th><th>Fim</th><th>Dias</th></tr></thead><tbody>
+      {% for contract in upcoming_contracts %}<tr><td><a href="{{ contract.get_absolute_url }}">{{ contract.number }}</a></td><td>{{ contract.supplier.name|truncatechars:32 }}</td><td>{{ contract.end_date|date:'d/m/Y' }}</td><td><span class="badge warning">{{ contract.days_to_expiry }}</span></td></tr>
+      {% empty %}<tr><td colspan="4" class="empty">Nenhum contrato vence nos próximos 90 dias.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  <section class="panel">
+    <div class="panel-heading"><h2>Entregas atrasadas</h2><a href="{% url 'supplyorder_list' %}">Ver ordens</a></div>
+    <div class="table-wrap"><table><thead><tr><th>Contrato</th><th>OM</th><th>Prazo</th><th>Saldo</th></tr></thead><tbody>
+      {% for order in overdue_orders %}<tr><td><a href="{{ order.contract.get_absolute_url }}">{{ order.contract.number }}</a></td><td>{{ order.destination.acronym }}</td><td>{{ order.deadline|date:'d/m/Y' }}</td><td>{{ order.pending_quantity|decimal_pt }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="empty">Nenhuma entrega atrasada.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</div>
+<section class="panel">
+  <div class="panel-heading"><h2>Atividade recente</h2>{% if can_manage %}<a href="{% url 'audit_list' %}">Auditoria completa</a>{% endif %}</div>
+  <div class="timeline">{% for log in recent_audit %}<div><span class="timeline-dot"></span><p><strong>{{ log.get_action_display }}</strong> — {{ log.representation }}<small>{{ log.actor|default:'Sistema' }} · {{ log.created_at|date:'d/m/Y H:i' }}</small></p></div>{% empty %}<p class="empty">Sem movimentações.</p>{% endfor %}</div>
+</section>
+{% endblock %}

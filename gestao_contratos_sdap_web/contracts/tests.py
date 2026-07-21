@@ -1,0 +1,177 @@
+from datetime import timedelta
+from decimal import Decimal
+
+from django.contrib.auth.models import Group, User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from .import_service import import_preview, preview_workbook
+from .models import Contract, Delivery, Document, Organization, Supplier, SupplyOrder
+from .xlsx_utils import read_xlsx_sheet, write_simple_xlsx
+
+
+class XlsxUtilityTests(TestCase):
+    def test_write_and_read_xlsx(self):
+        content = write_simple_xlsx(['CONTRATO', 'EMPRESA'], [['001/2026', 'EMPRESA TESTE']], 'Planilha1')
+        rows = read_xlsx_sheet(SimpleUploadedFile('teste.xlsx', content), 'Planilha1')
+        self.assertEqual(rows[0][:2], ['CONTRATO', 'EMPRESA'])
+        self.assertEqual(rows[1][:2], ['001/2026', 'EMPRESA TESTE'])
+
+
+class ImportTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('gestor', password='SenhaForte123!')
+
+    def workbook(self):
+        headers = [
+            'STATUS', 'CONTRATO', 'PAG', 'EMPRESA', 'PREGÃO', 'ITEM PREGÃO', 'CÓD. TDV',
+            'NOMENCLATURA', 'TIPO', 'QTD EMPENHADO', 'ANO EMPENHO', 'EMPENHO', 'DATA NE',
+            'AÇÃO ORÇAMENTÁRIA', 'PTRES', 'ORIGEM CRÉDITO', 'PI', 'VALOR UNITÁRIO',
+            'VALOR TOTAL', 'OM TERMO DE REFERÊNCIA', 'OM DESTINO', 'GESTOR', 'SUPLENTE',
+            'ASSINATURA DO CONTRATO', 'VIGÊNCIA FINAL CONTRATO', 'ASSINATURA DA ORD. FORNECIMENTO',
+            'PRAZO DE ENTREGA', 'OFÍCIO ORDEM FORNECIMENTO À OM', 'ENTREGUES?',
+            'VIATURAS ENTREGUES EM:', 'STATUS VIGÊNCIA', 'DIAS P/ VENCER', 'STATUS ENTREGA',
+        ]
+        today = timezone.localdate()
+        row = [
+            'VIGENTE', '001/TESTE/2026', '00000.000001/2026-00', 'EMPRESA TESTE LTDA', '90000/2026',
+            1, 'P-1/01A-DTS', 'VEÍCULO', 'MODELO TESTE', 2, 2026, '2026NE000001', today,
+            '20XV', '123456', 'SDAP', 'PI0001', Decimal('100000'), Decimal('200000'), 'SDAP',
+            'OM-TESTE', '1T GESTOR', '2S SUPLENTE', today, today + timedelta(days=365), today,
+            today + timedelta(days=90), 'SIGAD: 123456', 'SIM', today + timedelta(days=30),
+            'VIGENTE', '', 'ENTREGUE',
+        ]
+        return SimpleUploadedFile('planilha.xlsx', write_simple_xlsx(headers, [row], 'Planilha1'))
+
+    def test_preview_and_import(self):
+        preview = preview_workbook(self.workbook(), 'Planilha1')
+        self.assertEqual(preview['summary']['errors'], 0)
+        self.assertEqual(preview['summary']['contracts'], 1)
+        result = import_preview(preview, actor=self.user, filename='planilha.xlsx')
+        self.assertEqual(result['contracts_created'], 1)
+        self.assertEqual(Contract.objects.count(), 1)
+        self.assertEqual(SupplyOrder.objects.count(), 1)
+        self.assertEqual(Delivery.objects.count(), 1)
+        self.assertEqual(Contract.objects.get().current_value, Decimal('200000'))
+
+    def test_preview_rejects_missing_required_columns(self):
+        file = SimpleUploadedFile('invalida.xlsx', write_simple_xlsx(['PAG'], [['x']], 'Planilha1'))
+        with self.assertRaises(ValueError):
+            preview_workbook(file, 'Planilha1')
+
+
+class ContractModelTests(TestCase):
+    def setUp(self):
+        self.supplier = Supplier.objects.create(name='EMPRESA MODELO')
+        self.org = Organization.objects.create(acronym='SDAP', name='SDAP')
+
+    def test_calculated_status(self):
+        contract = Contract.objects.create(
+            number='001/MODELO/2026', supplier=self.supplier, managing_organization=self.org,
+            end_date=timezone.localdate() + timedelta(days=30), current_value=100, initial_value=100,
+            status=Contract.Status.ACTIVE,
+        )
+        self.assertEqual(contract.calculated_status, Contract.Status.EXPIRING)
+        self.assertEqual(contract.days_to_expiry, 30)
+
+
+class ViewAndPermissionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('consulta', password='SenhaForte123!')
+        self.gestor = User.objects.create_user('gestor', password='SenhaForte123!')
+        group = Group.objects.create(name='Gestor')
+        self.gestor.groups.add(group)
+
+    def test_dashboard_requires_login(self):
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('login'), response.url)
+
+    def test_dashboard_authenticated(self):
+        self.client.login(username='consulta', password='SenhaForte123!')
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Painel gerencial')
+
+    def test_read_only_user_cannot_create_contract(self):
+        self.client.login(username='consulta', password='SenhaForte123!')
+        response = self.client.get(reverse('contract_create'))
+        self.assertEqual(response.status_code, 403)
+
+    def test_manager_can_open_import(self):
+        self.client.login(username='gestor', password='SenhaForte123!')
+        response = self.client.get(reverse('import_upload'))
+        self.assertEqual(response.status_code, 200)
+
+
+
+    def test_uploaded_document_requires_login_and_is_served_to_authenticated_user(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as media_dir:
+            with override_settings(MEDIA_ROOT=Path(media_dir)):
+                supplier = Supplier.objects.create(name='EMPRESA DOCUMENTO')
+                org = Organization.objects.create(acronym='OM-DOC', name='OM Documento')
+                contract = Contract.objects.create(number='004/DOC/2026', supplier=supplier, managing_organization=org, initial_value=0, current_value=0)
+                document = Document.objects.create(contract=contract, title='Teste', file=SimpleUploadedFile('teste.txt', b'conteudo protegido'))
+                anonymous = self.client.get(document.file.url)
+                self.assertEqual(anonymous.status_code, 302)
+                self.client.login(username='gestor', password='SenhaForte123!')
+                response = self.client.get(document.file.url)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(b''.join(response.streaming_content), b'conteudo protegido')
+
+    def test_report_exports(self):
+        self.client.login(username='gestor', password='SenhaForte123!')
+        supplier = Supplier.objects.create(name='EMPRESA RELATÓRIO')
+        org = Organization.objects.create(acronym='OM-REL', name='OM Relatório')
+        Contract.objects.create(
+            number='003/RELATORIO/2026', supplier=supplier, managing_organization=org,
+            current_value=Decimal('12345.67'), initial_value=Decimal('12345.67'),
+            end_date=timezone.localdate() + timedelta(days=180), status=Contract.Status.ACTIVE,
+        )
+        xlsx_response = self.client.get(reverse('export_contracts_xlsx'))
+        self.assertEqual(xlsx_response.status_code, 200)
+        self.assertTrue(xlsx_response.content.startswith(b'PK'))
+        parsed = read_xlsx_sheet(SimpleUploadedFile('relatorio.xlsx', xlsx_response.content), 'Contratos')
+        self.assertEqual(parsed[0][0], 'Contrato')
+        pdf_response = self.client.get(reverse('export_contracts_pdf'))
+        self.assertEqual(pdf_response.status_code, 200)
+        self.assertTrue(pdf_response.content.startswith(b'%PDF'))
+        csv_response = self.client.get(reverse('export_contracts_csv'))
+        self.assertEqual(csv_response.status_code, 200)
+        self.assertIn('003/RELATORIO/2026', csv_response.content.decode('utf-8-sig'))
+        template_response = self.client.get(reverse('import_template'))
+        self.assertEqual(template_response.status_code, 200)
+        template_rows = read_xlsx_sheet(SimpleUploadedFile('modelo.xlsx', template_response.content), 'Planilha1')
+        self.assertEqual(template_rows[0][0], 'STATUS')
+
+    def test_main_pages_render(self):
+        self.client.login(username='gestor', password='SenhaForte123!')
+        supplier = Supplier.objects.create(name='EMPRESA PÁGINAS')
+        org = Organization.objects.create(acronym='OM-PAG', name='OM Páginas')
+        contract = Contract.objects.create(
+            number='002/PAGINAS/2026', supplier=supplier, managing_organization=org,
+            status=Contract.Status.ACTIVE, current_value=1000, initial_value=1000,
+            end_date=timezone.localdate() + timedelta(days=200),
+        )
+        urls = [
+            reverse('contract_list'), reverse('contract_detail', args=[contract.pk]),
+            reverse('supplier_list'), reverse('organization_list'), reverse('person_list'),
+            reverse('commitment_list'), reverse('supplyorder_list'), reverse('delivery_list'),
+            reverse('change_list'), reverse('process_list'), reverse('document_list'),
+            reverse('audit_list'), reverse('help'), reverse('contract_create'),
+            reverse('item_create') + f'?contract={contract.pk}',
+            reverse('commitment_create') + f'?contract={contract.pk}',
+            reverse('supplyorder_create') + f'?contract={contract.pk}',
+            reverse('change_create') + f'?contract={contract.pk}',
+            reverse('process_create') + f'?contract={contract.pk}',
+            reverse('document_create') + f'?contract={contract.pk}',
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)

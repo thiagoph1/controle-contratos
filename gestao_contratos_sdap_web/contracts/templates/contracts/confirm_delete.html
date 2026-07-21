@@ -1,0 +1,2 @@
+{% extends 'contracts/base.html' %}
+{% block content %}<div class="page-heading"><div><h1>Confirmar exclusão</h1><p>Esta ação não poderá ser desfeita.</p></div></div><form method="post" class="panel narrow-panel">{% csrf_token %}<p>Deseja excluir <strong>{{ object }}</strong>?</p><div class="form-actions"><a class="button" href="javascript:history.back()">Cancelar</a><button class="button danger" type="submit">Excluir</button></div></form>{% endblock %}

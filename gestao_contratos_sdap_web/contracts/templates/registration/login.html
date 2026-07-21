@@ -1,0 +1,23 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acesso — Gestão de Contratos</title>
+  <link rel="stylesheet" href="{% static 'contracts/css/app.css' %}">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="login-brand"><span class="brand-mark">GC</span><div><h1>Gestão de Contratos</h1><p>SDAP</p></div></div>
+    <p class="muted">Acesso restrito a usuários autorizados.</p>
+    {% if form.errors %}<div class="message error">Usuário ou senha inválidos.</div>{% endif %}
+    <form method="post" class="stack-form">
+      {% csrf_token %}
+      <label for="id_username">Usuário</label>{{ form.username }}
+      <label for="id_password">Senha</label>{{ form.password }}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="button primary full">Entrar</button>
+    </form>
+  </main>
+</body>
+</html>
