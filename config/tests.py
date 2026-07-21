@@ -3,6 +3,7 @@ from importlib import reload
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
+from django.urls import resolve
 
 import config.settings as settings_module
 
@@ -36,3 +37,19 @@ class RailwaySettingsTests(SimpleTestCase):
             self.assertIn('localhost', settings.ALLOWED_HOSTS)
             self.assertIn('app.railway.app', settings.ALLOWED_HOSTS)
             self.assertIn('https://app.railway.app', settings.CSRF_TRUSTED_ORIGINS)
+
+    def test_render_external_hostname_is_added_to_allowed_hosts(self):
+        with patch.dict(os.environ, {
+            'DJANGO_ALLOWED_HOSTS': 'localhost',
+            'RENDER_EXTERNAL_HOSTNAME': 'app.onrender.com',
+        }, clear=False):
+            settings = self._reload_settings()
+            self.assertIn('localhost', settings.ALLOWED_HOSTS)
+            self.assertIn('app.onrender.com', settings.ALLOWED_HOSTS)
+            self.assertIn('https://app.onrender.com', settings.CSRF_TRUSTED_ORIGINS)
+
+    def test_login_and_logout_routes_resolve_with_and_without_trailing_slash(self):
+        self.assertEqual(resolve('/login').view_name, 'login')
+        self.assertEqual(resolve('/login/').view_name, 'login')
+        self.assertEqual(resolve('/logout').view_name, 'logout')
+        self.assertEqual(resolve('/logout/').view_name, 'logout')
