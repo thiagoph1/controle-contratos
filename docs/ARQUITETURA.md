@@ -3,7 +3,7 @@
 ## Componentes
 
 - **Aplicação web:** Django 5.2 LTS;
-- **servidor WSGI:** Waitress, compatível com Windows e Linux;
+- **servidor WSGI:** Waitress, usado em ambientes containerizados e no Render;
 - **arquivos estáticos:** WhiteNoise;
 - **banco local/teste:** SQLite;
 - **banco multiusuário recomendado:** PostgreSQL;

@@ -17,18 +17,42 @@ Sistema web multiusuário para cadastro, acompanhamento e auditoria de contratos
 - trilha de auditoria;
 - importação da estrutura `SDAP_CONTRATOS_2026_v2.xlsx`, com prévia;
 - exportação para XLSX, PDF e CSV;
-- instalação Windows, Docker/PostgreSQL e backup SQLite.
+- implantação preparada para Render e Docker/PostgreSQL, com backup SQLite.
 
-## Início rápido no Windows
+## Execução local
 
-1. Instale Python 3.10 ou superior, marcando a opção de adicioná-lo ao PATH.
-2. Extraia este projeto para uma pasta local, como `C:\GestaoContratosSDAP`.
-3. Execute `INSTALAR_WINDOWS.bat`.
-4. Crie o administrador quando solicitado.
-5. Execute `INICIAR_SERVIDOR_WINDOWS.bat`.
-6. Abra `http://127.0.0.1:8000` no servidor ou `http://IP_DO_SERVIDOR:8000` nos demais computadores da rede.
+Para testes locais, o projeto pode ser executado com SQLite e o servidor Django:
 
-Leia `MANUAL_INSTALACAO_E_USO.md` antes de publicar o sistema na rede institucional.
+```bash
+python manage.py migrate
+python manage.py bootstrap_system --no-admin
+python manage.py runserver
+```
+
+Também é possível usar Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+## Deploy no Render
+
+O projeto já está preparado para deploy no Render por meio de `render.yaml`.
+
+### Variáveis de ambiente mínimas
+
+- `DJANGO_SECRET_KEY`: chave secreta forte.
+- `DJANGO_DEBUG`: defina como `0` em produção.
+- `DJANGO_ALLOWED_HOSTS`: adicione `localhost`, `127.0.0.1` e o domínio público do Render.
+- `DB_ENGINE=postgresql`
+- `DATABASE_URL`: URL completa do PostgreSQL gerada pelo Render.
+
+### Passos
+
+1. Conecte este repositório ao Render.
+2. Crie um banco PostgreSQL e associe a variável `DATABASE_URL` ao serviço web.
+3. Defina as variáveis acima no painel do Render.
+4. Faça o deploy; o container iniciará automaticamente com o script de entrada do projeto.
 
 ## Comandos úteis
 
@@ -39,28 +63,6 @@ python manage.py seed_demo
 python manage.py preview_import caminho/planilha.xlsx --sheet Planilha1
 python manage.py backup_system
 ```
-
-## Deploy no Railway
-
-O projeto já está preparado para rodar no Railway com PostgreSQL e servir a aplicação via Waitress.
-
-### Variáveis de ambiente mínimas
-
-- `DJANGO_SECRET_KEY`: chave secreta forte.
-- `DJANGO_DEBUG`: defina como `0` em produção.
-- `DJANGO_ALLOWED_HOSTS`: adicione `localhost` e o domínio público do projeto, por exemplo `localhost,your-app.up.railway.app`.
-- `DB_ENGINE=postgresql`
-- `DATABASE_URL`: URL completa do PostgreSQL fornecida pelo Railway.
-- `RAILWAY_PUBLIC_DOMAIN`: domínio público gerado pelo Railway.
-- `PORT`: o Railway já preenche isso automaticamente.
-
-### Passos
-
-1. Conecte este repositório ao Railway.
-2. Defina o serviço para usar o diretório da aplicação Django.
-3. Adicione o PostgreSQL como serviço do Railway e copie a `DATABASE_URL` para a aplicação.
-4. Defina as variáveis acima no painel do Railway.
-5. Faça o deploy; o container iniciará automaticamente com o script de entrada do projeto.
 
 ## Observação sobre dados
 

@@ -31,8 +31,6 @@ DEBUG = env_bool('DJANGO_DEBUG', True)
 
 allowed_hosts = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',') if host.strip()]
 for domain in [
-    os.getenv('RAILWAY_PUBLIC_DOMAIN', ''),
-    os.getenv('RAILWAY_PRIVATE_DOMAIN', ''),
     os.getenv('RENDER_EXTERNAL_HOSTNAME', ''),
     os.getenv('RENDER_EXTERNAL_URL', ''),
     os.getenv('RENDER_SERVICE_NAME', ''),
@@ -46,8 +44,18 @@ allowed_hosts.extend(['.onrender.com', 'onrender.com'])
 ALLOWED_HOSTS = allowed_hosts
 
 csrf_origins = [origin.strip() for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
+
+def add_csrf_origin(origin: str):
+    if origin and origin not in csrf_origins:
+        csrf_origins.append(origin)
+
+for host in ['localhost', '127.0.0.1']:
+    for scheme in ['http', 'https']:
+        add_csrf_origin(f'{scheme}://{host}')
+        for port in ['8000', '8080', '3000']:
+            add_csrf_origin(f'{scheme}://{host}:{port}')
+
 for domain in [
-    os.getenv('RAILWAY_PUBLIC_DOMAIN', ''),
     os.getenv('RENDER_EXTERNAL_HOSTNAME', ''),
     os.getenv('RENDER_EXTERNAL_URL', ''),
     os.getenv('RENDER_SERVICE_NAME', ''),
@@ -58,10 +66,9 @@ for domain in [
         origin = domain
     else:
         origin = f'https://{domain}'
-    if origin not in csrf_origins:
-        csrf_origins.append(origin)
+    add_csrf_origin(origin)
 if 'https://*.onrender.com' not in csrf_origins:
-    csrf_origins.append('https://*.onrender.com')
+    add_csrf_origin('https://*.onrender.com')
 CSRF_TRUSTED_ORIGINS = csrf_origins
 
 INSTALLED_APPS = [

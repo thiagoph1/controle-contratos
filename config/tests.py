@@ -8,7 +8,7 @@ from django.urls import resolve
 import config.settings as settings_module
 
 
-class RailwaySettingsTests(SimpleTestCase):
+class RenderSettingsTests(SimpleTestCase):
     def _reload_settings(self):
         return reload(settings_module)
 
@@ -28,15 +28,15 @@ class RailwaySettingsTests(SimpleTestCase):
             self.assertEqual(settings.DATABASES['default']['HOST'], 'db.example.com')
             self.assertEqual(settings.DATABASES['default']['PORT'], '5432')
 
-    def test_railway_public_domain_is_added_to_allowed_hosts(self):
+    def test_unrecognized_deployment_hostname_is_not_added_to_allowed_hosts(self):
         with patch.dict(os.environ, {
             'DJANGO_ALLOWED_HOSTS': 'localhost',
-            'RAILWAY_PUBLIC_DOMAIN': 'app.railway.app',
+            'CUSTOM_HOSTNAME': 'app.example.com',
         }, clear=False):
             settings = self._reload_settings()
             self.assertIn('localhost', settings.ALLOWED_HOSTS)
-            self.assertIn('app.railway.app', settings.ALLOWED_HOSTS)
-            self.assertIn('https://app.railway.app', settings.CSRF_TRUSTED_ORIGINS)
+            self.assertNotIn('app.example.com', settings.ALLOWED_HOSTS)
+            self.assertNotIn('https://app.example.com', settings.CSRF_TRUSTED_ORIGINS)
 
     def test_render_external_hostname_is_added_to_allowed_hosts(self):
         with patch.dict(os.environ, {
