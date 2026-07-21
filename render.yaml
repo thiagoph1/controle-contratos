@@ -17,11 +17,11 @@ services:
       - key: DJANGO_CSRF_TRUSTED_ORIGINS
         value: "https://*.onrender.com,https://*.onrender.com/"
       - key: DJANGO_SECURE_COOKIES
-        value: "1"
+        value: "0"
       - key: DJANGO_SECURE_SSL_REDIRECT
-        value: "1"
+        value: "0"
       - key: DJANGO_HSTS_SECONDS
-        value: "31536000"
+        value: "0"
       - key: DB_ENGINE
         value: "postgresql"
       - key: DATABASE_URL
