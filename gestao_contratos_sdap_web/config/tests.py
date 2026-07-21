@@ -36,3 +36,13 @@ class RailwaySettingsTests(SimpleTestCase):
             self.assertIn('localhost', settings.ALLOWED_HOSTS)
             self.assertIn('app.railway.app', settings.ALLOWED_HOSTS)
             self.assertIn('https://app.railway.app', settings.CSRF_TRUSTED_ORIGINS)
+
+    def test_render_external_hostname_is_added_to_allowed_hosts(self):
+        with patch.dict(os.environ, {
+            'DJANGO_ALLOWED_HOSTS': 'localhost',
+            'RENDER_EXTERNAL_HOSTNAME': 'app.onrender.com',
+        }, clear=False):
+            settings = self._reload_settings()
+            self.assertIn('localhost', settings.ALLOWED_HOSTS)
+            self.assertIn('app.onrender.com', settings.ALLOWED_HOSTS)
+            self.assertIn('https://app.onrender.com', settings.CSRF_TRUSTED_ORIGINS)
